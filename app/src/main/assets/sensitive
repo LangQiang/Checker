@@ -1,0 +1,8 @@
+android.net.wifi.WifiInfo#getBSSID#获取BSSID
+android.net.wifi.WifiInfo#getSSID#获取SSID
+android.net.wifi.WifiInfo#getIpAddress#获取IpAddress
+android.net.wifi.WifiInfo#getMacAddress#获取mac地址
+android.app.ApplicationPackageManager#getInstalledPackages#获取已安装应用列表
+android.telephony.TelephonyManager#getDeviceId#获取imei（deviceId）
+android.telephony.TelephonyManager#getSubscriberId#获取imei（subscriberId）
+java.net.NetworkInterface#getHardwareAddress#获取了hardwareMac地址
