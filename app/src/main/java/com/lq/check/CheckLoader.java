@@ -12,9 +12,11 @@ import org.lionsoul.ip2region.DbSearcher;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import de.robv.android.xposed.XposedBridge;
@@ -32,9 +34,11 @@ public class CheckLoader {
     private static List<SensitiveApiInfo> loadFromAssets(Context context) {
         List<SensitiveApiInfo> result;
         try {
-            InputStream inputStream = context.getAssets().open("sensitive");
-            result = parse(inputStream);
-        } catch (IOException e) {
+//            InputStream inputStream = context.getAssets().open("sensitive");
+//            result = parse(inputStream);
+            result = readFromSDCard(context);
+
+        } catch (Exception e) {
             result = readFromSDCard(context);
             e.printStackTrace();
         }
@@ -97,6 +101,79 @@ public class CheckLoader {
             }
         } else {
             return dbSearcher;
+        }
+    }
+
+    public static void saveSensitiveItem(String sensitiveInfo) {
+
+        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/checkAssets");
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                return;
+            }
+        }
+
+        File file = new File(dir, "sensitive");
+        FileOutputStream fileOutputStream = null;
+        try {
+            fileOutputStream = new FileOutputStream(file, true);
+            fileOutputStream.write(('\n' + sensitiveInfo + '\n').getBytes());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void deleteOneSensitiveItem(SensitiveApiInfo sensitiveInfo) {
+        File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/checkAssets");
+        if (!dir.exists()) {
+            if (!dir.mkdirs()) {
+                return;
+            }
+        }
+
+        File file = new File(dir, "sensitive");
+
+        try {
+            List<SensitiveApiInfo> result = parse(new FileInputStream(file));
+            Iterator<SensitiveApiInfo> iterator = result.iterator();
+            while (iterator.hasNext()) {
+                SensitiveApiInfo next = iterator.next();
+                if (sensitiveInfo.methodName.equals(next.methodName) && sensitiveInfo.classFullName.equals(next.classFullName)) {
+                    iterator.remove();
+                }
+            }
+            saveAll(result, file);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void saveAll(List<SensitiveApiInfo> sensitiveApiInfos, File file) {
+        FileOutputStream fileOutputStream = null;
+        try {
+            fileOutputStream = new FileOutputStream(file, true);
+            for (SensitiveApiInfo sensitiveApiInfo : sensitiveApiInfos) {
+                String sensitiveInfoStr = '\n' + sensitiveApiInfo.classFullName + "#" + sensitiveApiInfo.methodName + "#" + sensitiveApiInfo.desc + '\n';
+                fileOutputStream.write(sensitiveInfoStr.getBytes());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
