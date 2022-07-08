@@ -1,6 +1,8 @@
 package com.lq.check;
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.provider.Settings;
 import android.util.Log;
 
 import org.lionsoul.ip2region.DbSearcher;
@@ -75,23 +77,55 @@ public class CheckedCore implements IXposedHookLoadPackage {
     }
 
     private void registerHook(final SensitiveApiInfo sensitiveApiInfo, final XC_LoadPackage.LoadPackageParam loadPackageParam) {
-        try {
-            findAndHookMethod(sensitiveApiInfo.classFullName,
-                    loadPackageParam.classLoader,
-                    sensitiveApiInfo.methodName,
-                    new XC_MethodHook() {
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+
+        XC_MethodHook handleLoadPackage_getHardwareAddress_hooked = new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
 //                            param.setResult("Mac?Hooked!");
-                            super.beforeHookedMethod(param);
-                        }
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            super.afterHookedMethod(param);
-                            XposedBridge.log("handleLoadPackage getHardwareAddress hooked");
-                            Printer.printStackTrace(sensitiveApiInfo, loadPackageParam.processName);
-                        }
-                    });
+                super.beforeHookedMethod(param);
+            }
+
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+                XposedBridge.log("handleLoadPackage getHardwareAddress hooked");
+
+                if (printByParam(sensitiveApiInfo, loadPackageParam, param)) {
+                    return;
+                }
+                Printer.printStackTrace(sensitiveApiInfo, loadPackageParam.processName);
+            }
+
+            private boolean printByParam(SensitiveApiInfo sensitiveApiInfo, XC_LoadPackage.LoadPackageParam loadPackageParam, MethodHookParam param) {
+                if (!sensitiveApiInfo.classFullName.contains("android.provider.Settings")) {
+                    return false;
+                }
+                Log.e("sensitive", sensitiveApiInfo.classFullName + "  测试打印 忽略这条");
+                try {
+                    if (((String) param.args[1]).equals(Settings.Secure.ANDROID_ID)) {
+                        Printer.printStackTrace(sensitiveApiInfo, loadPackageParam.processName);
+                        return true;
+                    }
+                } catch (Exception ignore) {
+
+                }
+                return false;
+            }
+        };
+
+        try {
+            //todo 参数配置到文件里 先暂时特异处理 没时间整
+            if (sensitiveApiInfo.classFullName.contains("android.provider.Settings")) {
+                findAndHookMethod(sensitiveApiInfo.classFullName,
+                        loadPackageParam.classLoader,
+                        sensitiveApiInfo.methodName, ContentResolver.class, String.class,
+                        handleLoadPackage_getHardwareAddress_hooked);
+            } else {
+                findAndHookMethod(sensitiveApiInfo.classFullName,
+                        loadPackageParam.classLoader,
+                        sensitiveApiInfo.methodName,
+                        handleLoadPackage_getHardwareAddress_hooked);
+            }
         } catch (Throwable r) {
             // r.printStackTrace();
         }
