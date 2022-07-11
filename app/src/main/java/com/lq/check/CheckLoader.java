@@ -23,7 +23,7 @@ import de.robv.android.xposed.XposedBridge;
 
 public class CheckLoader {
 
-    private static DbSearcher dbSearcher = loadIpDb();
+    private static final DbSearcher dbSearcher = loadIpDb();
 
     @NonNull
     public static List<SensitiveApiInfo> load(@NonNull Context context) {
@@ -34,8 +34,6 @@ public class CheckLoader {
     private static List<SensitiveApiInfo> loadFromAssets(Context context) {
         List<SensitiveApiInfo> result;
         try {
-//            InputStream inputStream = context.getAssets().open("sensitive");
-//            result = parse(inputStream);
             result = readFromSDCard(context);
 
         } catch (Exception e) {

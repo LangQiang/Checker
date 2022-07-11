@@ -1,9 +1,5 @@
 package com.lq.check;
 
-//Sensitive 敏感的 'sensətɪv'
-
-import androidx.annotation.NonNull;
-
 public class SensitiveApiInfo {
     public String classFullName;
 

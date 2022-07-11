@@ -1,6 +1,8 @@
 package com.lq.check;
 
-import android.content.ContentResolver;
+import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
+import static de.robv.android.xposed.XposedHelpers.findClass;
+
 import android.content.Context;
 import android.provider.Settings;
 import android.util.Log;
@@ -9,14 +11,13 @@ import org.lionsoul.ip2region.DbSearcher;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
-
-import static de.robv.android.xposed.XposedHelpers.findAndHookMethod;
-import static de.robv.android.xposed.XposedHelpers.findClass;
 
 public class CheckedCore implements IXposedHookLoadPackage {
 
@@ -100,7 +101,7 @@ public class CheckedCore implements IXposedHookLoadPackage {
                 if (!sensitiveApiInfo.classFullName.contains("android.provider.Settings")) {
                     return false;
                 }
-                Log.e("sensitive", sensitiveApiInfo.classFullName + "  测试打印 忽略这条");
+                Log.e("sensitive", sensitiveApiInfo.classFullName + "  测试打印");
                 try {
                     if (((String) param.args[1]).equals(Settings.Secure.ANDROID_ID)) {
                         Printer.printStackTrace(sensitiveApiInfo, loadPackageParam.processName);
@@ -114,18 +115,48 @@ public class CheckedCore implements IXposedHookLoadPackage {
         };
 
         try {
-            //todo 参数配置到文件里 先暂时特异处理 没时间整
-            if (sensitiveApiInfo.classFullName.contains("android.provider.Settings")) {
-                findAndHookMethod(sensitiveApiInfo.classFullName,
-                        loadPackageParam.classLoader,
-                        sensitiveApiInfo.methodName, ContentResolver.class, String.class,
-                        handleLoadPackage_getHardwareAddress_hooked);
-            } else {
-                findAndHookMethod(sensitiveApiInfo.classFullName,
-                        loadPackageParam.classLoader,
-                        sensitiveApiInfo.methodName,
-                        handleLoadPackage_getHardwareAddress_hooked);
+//            //todo 参数配置到文件里 先暂时特异处理 没时间整
+//            if (sensitiveApiInfo.classFullName.contains("android.provider.Settings")) {
+//                findAndHookMethod(sensitiveApiInfo.classFullName,
+//                        loadPackageParam.classLoader,
+//                        sensitiveApiInfo.methodName, ContentResolver.class, String.class,
+//                        handleLoadPackage_getHardwareAddress_hooked);
+//            } else if (sensitiveApiInfo.classFullName.contains("android.app.AlarmManager")) {
+//                findAndHookMethod(sensitiveApiInfo.classFullName,
+//                        loadPackageParam.classLoader,
+//                        sensitiveApiInfo.methodName, int.class, long.class, PendingIntent.class,
+//                        handleLoadPackage_getHardwareAddress_hooked);
+//                findAndHookMethod(sensitiveApiInfo.classFullName,
+//                        loadPackageParam.classLoader,
+//                        sensitiveApiInfo.methodName, int.class, long.class, String.class, AlarmManager.OnAlarmListener.class,
+//                        handleLoadPackage_getHardwareAddress_hooked);
+//            } else {
+//                List<Object> paramAndCallback = new ArrayList<>();
+//                for (String param : sensitiveApiInfo.params) {
+//                    paramAndCallback.add(Class.forName(param));
+//                }
+//                paramAndCallback.add(handleLoadPackage_getHardwareAddress_hooked);
+//                findAndHookMethod(sensitiveApiInfo.classFullName,
+//                        loadPackageParam.classLoader,
+//                        sensitiveApiInfo.methodName,
+//                        paramAndCallback);
+//            }
+            String methodStr = sensitiveApiInfo.methodName;
+            String[] methodSpit = methodStr.split("&");
+            String methodName = methodSpit[0];
+            List<Object> paramAndCallback = new ArrayList<>();
+            for (int i = 1; i < methodSpit.length; i ++) {
+                Object obj = Utils.getParamClass(methodSpit[i]);
+                if (obj != null) {
+                    paramAndCallback.add(obj);
+                }
             }
+            paramAndCallback.add(handleLoadPackage_getHardwareAddress_hooked);
+
+            findAndHookMethod(sensitiveApiInfo.classFullName,
+                    loadPackageParam.classLoader,
+                    methodName,
+                    paramAndCallback.toArray());
         } catch (Throwable r) {
             // r.printStackTrace();
         }
